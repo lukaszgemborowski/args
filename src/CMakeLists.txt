@@ -1,0 +1,15 @@
+set(
+    include-dir
+    ${ARGS_ROOT}/include/
+)
+
+add_library(
+    args
+    INTERFACE
+)
+
+target_include_directories(
+    args
+    INTERFACE
+    ${include-dir}
+)
