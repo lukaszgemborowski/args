@@ -104,6 +104,7 @@ class opt : public opt_base
 {
 public:
     using type_t = typename opt_traits<T>::type_t;
+    using traits_t = opt_traits<T>;
 
     explicit opt(char s)
         : opt_base {s}
@@ -127,10 +128,12 @@ class parser
 public:
     parser(Args&... args)
         : opts_ {args...}
+        , posargs_ {}
     {}
 
     void parse(int argc, char **argv)
     {
+        bool prevWasArg = false;
         for (auto i = 1; i < argc; ++i) {
             if (argv[i][0] == '-') {
                 call_parse_arg(argc, argv, i, std::make_index_sequence<sizeof... (Args)>{});
@@ -140,15 +143,29 @@ public:
         }
     }
 
+    const auto& posargs() const
+    {
+        return posargs_;
+    }
+
+    auto& posargs()
+    {
+        return posargs_;
+    }
+
 private:
     template<std::size_t... I>
-    void call_parse_arg(int argc, char **argv, int index, std::index_sequence<I...>)
+    void call_parse_arg(int argc, char **argv, int &index, std::index_sequence<I...>)
     {
-        (parse_arg<I>(argc, argv, index), ...);
+        bool argumentConsumed = false;
+        (parse_arg<I>(argc, argv, index, argumentConsumed), ...);
+
+        if (argumentConsumed)
+            ++ index;
     }
 
     template<std::size_t I>
-    void parse_arg(int argc, char **argv, int index)
+    void parse_arg(int argc, char **argv, int index, bool &argumentConsumed)
     {
         auto &o = std::get<I>(opts_);
 
@@ -162,8 +179,12 @@ private:
 
             o.set_found();
 
+            if (!std::decay_t<std::tuple_element_t<I, decltype(opts_)>>::traits_t::has_value)
+                continue;
+
             if ((index + 1) < argc) {
                 o.set_value(argv[index + 1]);
+                argumentConsumed = true;
             }
         }
     }
