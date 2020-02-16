@@ -33,6 +33,11 @@ public:
         value_ = v;
     }
 
+    bool operator ! () const
+    {
+        return false;
+    }
+
 protected:
     char short_;
     char* value_;
