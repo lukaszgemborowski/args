@@ -91,16 +91,10 @@ template<>
 struct opt_traits<bool>
 {
     using type_t = bool;
-    static constexpr auto has_value = true;
-    static std::optional<bool> convert(const char *ptr)
+    static constexpr auto has_value = false;
+    static std::optional<bool> convert(const char *)
     {
-        auto r = opt_traits<int>::convert(ptr);
-
-        if (r) {
-            return {*r};
-        }
-
-        return {};
+        return true;
     }
 };
 
@@ -111,8 +105,9 @@ public:
     using type_t = typename opt_traits<T>::type_t;
     using traits_t = opt_traits<T>;
 
-    explicit opt(char s)
+    opt(char s, T &&defaultValue)
         : opt_base {s}
+        , defaultValue_ {std::move(defaultValue)}
     {}
 
     auto value() const
@@ -124,7 +119,24 @@ public:
         return opt_traits<T>::convert(value_);
     }
 
+    T operator* () const
+    {
+        auto val = value();
+
+        if (val) {
+            return *val;
+        } else {
+            return defaultValue_;
+        }
+    }
+
+    operator T () const
+    {
+        return *(*this);
+    }
+
 private:
+    T defaultValue_;
 };
 
 template<class... Args>
