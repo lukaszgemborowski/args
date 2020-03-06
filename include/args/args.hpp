@@ -13,8 +13,6 @@ class opt_base
 public:
     opt_base(char s)
         : short_ {s}
-        , value_ {nullptr}
-        , found_ {false}
     {}
 
     auto short_name() const
@@ -22,26 +20,8 @@ public:
         return short_;
     }
 
-    // methods for parser use
-    void set_found()
-    {
-        found_ = true;
-    }
-
-    void set_value(char *v)
-    {
-        value_ = v;
-    }
-
-    bool operator ! () const
-    {
-        return false;
-    }
-
 protected:
     char short_;
-    char* value_;
-    bool found_;
 };
 
 template<class T> struct opt_traits;
@@ -107,6 +87,8 @@ public:
 
     opt(char s, T &&defaultValue)
         : opt_base {s}
+        , value_ {nullptr}
+        , found_ {false}
         , defaultValue_ {std::move(defaultValue)}
     {}
 
@@ -135,16 +117,61 @@ public:
         return *(*this);
     }
 
+    // methods for parser use
+    void set_found()
+    {
+        found_ = true;
+    }
+
+    void set_value(char *v)
+    {
+        value_ = v;
+    }
+
 private:
+    char* value_;
+    bool found_;
     T defaultValue_;
 };
 
-template<class... Args>
+template<class T>
+class assign : public opt_base
+{
+public:
+    using type_t = typename opt_traits<T>::type_t;
+    using traits_t = opt_traits<T>;
+
+    assign(char s, T &target, T &&defaultValue = T{})
+        : opt_base {s}
+        , target_ {target}
+        , defaultValue_ {std::move(defaultValue)}
+    {}
+
+    void set_found()
+    {
+        if constexpr (traits_t::has_value == false) {
+            target_ = defaultValue_;
+        }
+    }
+
+    void set_value(char *v)
+    {
+        auto value = traits_t::convert(v);
+        target_ = *value;
+    }
+
+private:
+    T &target_;
+    T defaultValue_;
+};
+
+template<class Tuple>
 class parser
 {
 public:
-    parser(Args&... args)
-        : opts_ {args...}
+    template<class... Opts>
+    parser(Opts&&... args)
+        : opts_ {std::forward_as_tuple(std::forward<Opts>(args)...)}
         , posargs_ {}
     {}
 
@@ -153,7 +180,7 @@ public:
         bool prevWasArg = false;
         for (auto i = 1; i < argc; ++i) {
             if (argv[i][0] == '-') {
-                call_parse_arg(argc, argv, i, std::make_index_sequence<sizeof... (Args)>{});
+                call_parse_arg(argc, argv, i, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
             } else {
                 posargs_.push_back(argv[i]);
             }
@@ -207,9 +234,11 @@ private:
     }
 
 private:
-    std::tuple<Args&...> opts_;
+    Tuple opts_;
     std::vector<char *> posargs_;
 };
+
+template<class... Opts> parser(Opts&&... args) -> parser<decltype(std::forward_as_tuple(std::forward<Opts>(args)...))>;
 
 } // namespace args
 

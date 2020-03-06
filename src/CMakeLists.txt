@@ -8,6 +8,12 @@ add_library(
     INTERFACE
 )
 
+target_compile_features(
+    args
+    INTERFACE
+    cxx_std_17
+)
+
 target_include_directories(
     args
     INTERFACE
