@@ -103,9 +103,11 @@ class opt : public opt_base
 {
 public:
     using target_t = decltype(std::declval<Converter>()(std::declval<T>()));
+    static_assert(std::is_reference_v<target_t> == false);
+
     using traits_t = opt_traits<T>;
 
-    opt(char s, target_t defaultValue)
+    opt(char s, T defaultValue)
         : opt_base {s}
         , hasDefault_ {true}
         , defaultValue_ {defaultValue}
@@ -113,6 +115,14 @@ public:
 
     opt(char s, save<target_t> &&target)
         : opt_base {s}
+    {
+        save(target.target);
+    }
+
+    opt(char s, save<target_t> &&target, T defaultValue)
+        : opt_base {s}
+        , hasDefault_ {true}
+        , defaultValue_ {defaultValue}
     {
         save(target.target);
     }
@@ -129,19 +139,22 @@ public:
 
     auto& value() const
     {
-        return target_ref();
+        const target_t &t = target_ ? *target_ : result_;
+        return t;
     }
 
     // methods for parser use
     void set_found()
     {
-        found_ = true;
-
         if constexpr (traits_t::has_value == false) {
+            found_ = true;
+            target_t &t = target_ ? *target_ : result_;
+
             if (hasDefault_) {
-                target_ref() = defaultValue_;
+                t = converter_(defaultValue_);
             } else {
-                target_ref() = *opt_traits<T>::convert(nullptr);
+                auto arg = opt_traits<T>::convert(nullptr);
+                t = converter_(arg);
             }
         }
     }
@@ -153,32 +166,36 @@ public:
 
     void set_value(const char *v)
     {
-        auto result = opt_traits<T>::convert(v);
+        auto arg = opt_traits<T>::convert(v);
 
-        if (result)
-            target_ref() = *result;
+        if (!arg)
+            return;
+
+        found_ = true;
+
+        if (target_) {
+            *target_ = converter_(*arg);
+        } else {
+            result_ = converter_(*arg);
+        }
+    }
+
+    void parse_complete()
+    {
+        target_t &t = target_ ? *target_ : result_;
+
+        if (!found_ && hasDefault_) {
+            t = converter_(defaultValue_);
+        }
     }
 
 private:
-    const auto& target_ref() const
-    {
-        return const_cast<opt<T, Converter> *>(this)->target_ref();
-    }
-
-    auto& target_ref()
-    {
-        if (target_)
-            return *target_;
-        else
-            return defaultValue_;
-    }
-
-private:
-    char*       value_ = nullptr;
     bool        found_ = false;
     target_t*   target_ = nullptr;
+    target_t    result_ = target_t {};
     bool        hasDefault_ = false;
-    target_t    defaultValue_ = target_t{};
+    T           defaultValue_ = T{};
+    Converter   converter_ = Converter{};
 };
 
 template<class T>
@@ -191,6 +208,8 @@ template<class Tuple>
 class parser
 {
 public:
+    static constexpr auto options_count = std::tuple_size_v<Tuple>;
+
     template<class... Opts>
     parser(Opts&&... args)
         : opts_ {std::forward_as_tuple(std::forward<Opts>(args)...)}
@@ -202,11 +221,13 @@ public:
         bool prevWasArg = false;
         for (auto i = 1; i < argc; ++i) {
             if (argv[i][0] == '-') {
-                call_parse_arg(argc, argv, i, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+                call_parse_arg(argc, argv, i, std::make_index_sequence<options_count>{});
             } else {
                 posargs_.push_back(argv[i]);
             }
         }
+
+        finish(std::make_index_sequence<options_count>{});
     }
 
     const auto& posargs() const
@@ -220,6 +241,12 @@ public:
     }
 
 private:
+    template<std::size_t... I>
+    void finish(std::index_sequence<I...>)
+    {
+        (std::get<I>(opts_).parse_complete(), ...);
+    }
+
     template<std::size_t... I>
     void call_parse_arg(int argc, char **argv, int &index, std::index_sequence<I...>)
     {
