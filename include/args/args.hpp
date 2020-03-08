@@ -172,37 +172,6 @@ private:
     T       defaultValue_ = T{};
 };
 
-template<class T>
-class assign : public opt_base
-{
-public:
-    using type_t = typename opt_traits<T>::type_t;
-    using traits_t = opt_traits<T>;
-
-    assign(char s, T &target, T &&defaultValue = T{})
-        : opt_base {s}
-        , target_ {target}
-        , defaultValue_ {std::move(defaultValue)}
-    {}
-
-    void set_found()
-    {
-        if constexpr (traits_t::has_value == false) {
-            target_ = defaultValue_;
-        }
-    }
-
-    void set_value(char *v)
-    {
-        auto value = traits_t::convert(v);
-        target_ = *value;
-    }
-
-private:
-    T &target_;
-    T defaultValue_;
-};
-
 template<class Tuple>
 class parser
 {
