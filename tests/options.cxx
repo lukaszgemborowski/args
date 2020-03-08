@@ -1,9 +1,6 @@
 #include "catch.hpp"
 #include <args/args.hpp>
 
-using namespace args;
-using namespace std::string_literals;
-
 struct CreateArgs
 {
     CreateArgs(std::initializer_list<std::string> a)
@@ -38,22 +35,17 @@ private:
     std::vector<std::vector<char>> args_;
 };
 
-TEST_CASE("Parse several types of options", "[args]")
+TEST_CASE("Default value returned from opt", "[args][opt]")
 {
-    auto argBool = opt{'b', false};
-    auto argInt = opt{'i', 0};
-    auto argString = opt{'s', ""s};
-    int intValue = 0;
+    auto o = args::opt{'a', 12};
 
-    auto holder = CreateArgs {
-        "tests", "-b", "-i", "42", "-s", "foo", "-x", "24"
-    };
+    REQUIRE(o.found() == false);
+    REQUIRE(o.value() == 12);
 
-    auto p = parser{argBool, argInt, argString, assign{'x', intValue}};
-    p.parse(holder.argc(), holder.argv());
+    o.set_found();
+    o.set_value("42");
 
-    CHECK(argBool == true);
-    CHECK(argInt == 42);
-    CHECK(*argString.value() == "foo"s);
-    CHECK(intValue == 24);
+    REQUIRE(o.found());
+    REQUIRE(o.value() == 42);
 }
+

@@ -79,59 +79,96 @@ struct opt_traits<bool>
 };
 
 template<class T>
+struct save
+{
+    save(T &target)
+        : target {target}
+    {}
+
+    T &target;
+};
+
+template<class T>
 class opt : public opt_base
 {
 public:
     using type_t = typename opt_traits<T>::type_t;
     using traits_t = opt_traits<T>;
 
-    opt(char s, T &&defaultValue)
+    opt(char s, T defaultValue)
         : opt_base {s}
-        , value_ {nullptr}
-        , found_ {false}
-        , defaultValue_ {std::move(defaultValue)}
+        , hasDefault_ {true}
+        , defaultValue_ {defaultValue}
     {}
 
-    auto value() const
+    opt(char s, save<T> &&target)
+        : opt_base {s}
     {
-        if (opt_traits<T>::has_value && value_ == nullptr)
-            return std::optional<type_t>{};
-        if (!found_)
-            return std::optional<type_t>{};
-        return opt_traits<T>::convert(value_);
+        save(target.target);
     }
 
-    T operator* () const
-    {
-        auto val = value();
+    explicit opt(char s)
+        : opt_base {s}
+    {}
 
-        if (val) {
-            return *val;
-        } else {
-            return defaultValue_;
-        }
+    auto& save(T &target)
+    {
+        target_ = &target;
+        return *this;
     }
 
-    operator T () const
+    auto& value() const
     {
-        return *(*this);
+        return target_ref();
     }
 
     // methods for parser use
     void set_found()
     {
         found_ = true;
+
+        if constexpr (traits_t::has_value == false) {
+            if (hasDefault_) {
+                target_ref() = defaultValue_;
+            } else {
+                target_ref() = *opt_traits<T>::convert(nullptr);
+            }
+        }
     }
 
-    void set_value(char *v)
+    bool found() const
     {
-        value_ = v;
+        return found_;
+    }
+
+    void set_value(const char *v)
+    {
+        auto result = opt_traits<T>::convert(v);
+
+        if (result)
+            target_ref() = *result;
     }
 
 private:
-    char* value_;
-    bool found_;
-    T defaultValue_;
+    const auto& target_ref() const
+    {
+        return const_cast<opt<T> *>(this)->target_ref();
+    }
+
+    auto& target_ref()
+    {
+        if (target_)
+            return *target_;
+        else
+            return defaultValue_;
+    }
+
+private:
+    char*   value_ = nullptr;
+    bool    found_ = false;
+    T*      target_ = nullptr;
+    bool    hasDefault_ = false;
+    T       defaultValue_ = T{};
 };
 
 template<class T>
