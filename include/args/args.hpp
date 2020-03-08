@@ -90,19 +90,28 @@ struct save
 };
 
 template<class T>
+struct identity
+{
+    T operator()(const T &input) const
+    {
+        return input;
+    }
+};
+
+template<class T, class Converter = identity<T>>
 class opt : public opt_base
 {
 public:
-    using type_t = typename opt_traits<T>::type_t;
+    using target_t = decltype(std::declval<Converter>()(std::declval<T>()));
     using traits_t = opt_traits<T>;
 
-    opt(char s, T defaultValue)
+    opt(char s, target_t defaultValue)
         : opt_base {s}
         , hasDefault_ {true}
         , defaultValue_ {defaultValue}
     {}
 
-    opt(char s, save<T> &&target)
+    opt(char s, save<target_t> &&target)
         : opt_base {s}
     {
         save(target.target);
@@ -112,7 +121,7 @@ public:
         : opt_base {s}
     {}
 
-    auto& save(T &target)
+    auto& save(target_t &target)
     {
         target_ = &target;
         return *this;
@@ -153,7 +162,7 @@ public:
 private:
     const auto& target_ref() const
     {
-        return const_cast<opt<T> *>(this)->target_ref();
+        return const_cast<opt<T, Converter> *>(this)->target_ref();
     }
 
     auto& target_ref()
@@ -165,12 +174,18 @@ private:
     }
 
 private:
-    char*   value_ = nullptr;
-    bool    found_ = false;
-    T*      target_ = nullptr;
-    bool    hasDefault_ = false;
-    T       defaultValue_ = T{};
+    char*       value_ = nullptr;
+    bool        found_ = false;
+    target_t*   target_ = nullptr;
+    bool        hasDefault_ = false;
+    target_t    defaultValue_ = target_t{};
 };
+
+template<class T>
+opt(char, T) -> opt<T, identity<T>>;
+
+template<class T>
+opt(char, save<T> &&) -> opt<T, identity<T>>;
 
 template<class Tuple>
 class parser
