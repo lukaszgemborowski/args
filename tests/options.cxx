@@ -1,40 +1,6 @@
 #include "catch.hpp"
 #include <args/args.hpp>
 
-struct CreateArgs
-{
-    CreateArgs(std::initializer_list<std::string> a)
-    {
-        args_.push_back({});
-
-        for (auto v : a) {
-            std::vector<char> current{
-                v.begin(), v.end()};
-            current.push_back(0);
-            args_.push_back(current);
-        }
-
-        for (auto &v : args_) {
-            argv_.push_back(&v[0]);
-        }
-    }
-
-    int argc() const
-    {
-        return args_.size();
-    }
-
-    char** argv()
-    {
-        return &argv_[0];
-    }
-
-
-private:
-    std::vector<char *> argv_;
-    std::vector<std::vector<char>> args_;
-};
-
 TEST_CASE("Prase int value", "[args][opt]")
 {
     auto o = args::opt{'a', 12};
@@ -62,7 +28,7 @@ TEST_CASE("Return default value", "[args][opt]")
 TEST_CASE("Parse int value to external variable", "[args][opt]")
 {
     int result = 0;
-    auto o = args::opt{'a', args::save{result}};
+    auto o = args::opt{'a', 0, args::save{result}};
 
     o.set_found();
     o.set_value("42");
@@ -75,7 +41,7 @@ TEST_CASE("Parse int value to external variable", "[args][opt]")
 TEST_CASE("Assign default value to external variable", "[args][opt]")
 {
     int result = 0;
-    auto o = args::opt{'a', args::save{result}, 12};
+    auto o = args::opt{'a', 12, args::save{result}};
 
     o.parse_complete();
 
@@ -140,5 +106,18 @@ TEST_CASE("Parse int and translate it to different type", "[args][opt]")
         o.parse_complete();
         REQUIRE(o.value() == TranslationResult::Other);
     }
+}
+
+TEST_CASE("Parse int and translate it to different type with lambda", "[args][opt]")
+{
+    auto o = args::opt{'a', 0, [](auto x) { return x < 10 ? false : true; }};
+    o.set_found();
+    o.set_value("13");
+    o.parse_complete();
+
+    using return_type = std::decay_t<decltype(o.value())>;
+
+    REQUIRE(std::is_same_v<bool, return_type>);
+    REQUIRE(o.value() == true);
 }
 

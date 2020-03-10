@@ -89,6 +89,12 @@ struct save
     T &target;
 };
 
+template<class>
+struct is_save : std::false_type {};
+
+template<class T>
+struct is_save<save<T>> : std::true_type {};
+
 template<class T>
 struct identity
 {
@@ -107,28 +113,27 @@ public:
 
     using traits_t = opt_traits<T>;
 
-    opt(char s, T defaultValue)
+    opt(char s, T defaultValue, Converter converter = Converter{})
         : opt_base {s}
         , hasDefault_ {true}
         , defaultValue_ {defaultValue}
-    {}
+        , converter_ {converter}
+    {
+        static_assert(is_save<T>::value == false, "use opt(char, T, save<T>) constructor instead");
+    }
 
-    opt(char s, save<target_t> &&target)
+    opt(char s, T defaultValue, save<target_t> &&target, Converter converter = Converter{})
         : opt_base {s}
+        , hasDefault_ {true}
+        , defaultValue_ {defaultValue}
+        , converter_ {converter}
     {
         save(target.target);
     }
 
-    opt(char s, save<target_t> &&target, T defaultValue)
+    explicit opt(char s, Converter converter = Converter{})
         : opt_base {s}
-        , hasDefault_ {true}
-        , defaultValue_ {defaultValue}
-    {
-        save(target.target);
-    }
-
-    explicit opt(char s)
-        : opt_base {s}
+        , converter_ {converter}
     {}
 
     auto& save(target_t &target)
@@ -137,7 +142,7 @@ public:
         return *this;
     }
 
-    auto& value() const
+    const auto& value() const
     {
         const target_t &t = target_ ? *target_ : result_;
         return t;
@@ -197,12 +202,6 @@ private:
     T           defaultValue_ = T{};
     Converter   converter_ = Converter{};
 };
-
-template<class T>
-opt(char, T) -> opt<T, identity<T>>;
-
-template<class T>
-opt(char, save<T> &&) -> opt<T, identity<T>>;
 
 template<class Tuple>
 class parser
