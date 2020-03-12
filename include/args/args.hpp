@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <tuple>
 
 namespace args
 {
@@ -154,13 +155,8 @@ public:
         if constexpr (traits_t::has_value == false) {
             found_ = true;
             target_t &t = target_ ? *target_ : result_;
-
-            if (hasDefault_) {
-                t = converter_(defaultValue_);
-            } else {
-                auto arg = opt_traits<T>::convert(nullptr);
-                t = converter_(arg);
-            }
+            auto arg = opt_traits<T>::convert(nullptr);
+            t = converter_(*arg);
         }
     }
 
