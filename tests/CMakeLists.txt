@@ -3,6 +3,7 @@ add_executable(
     main.cxx
     options.cxx
     parser_tests.cxx
+    args2_tests.cxx
 )
 
 target_link_libraries(
@@ -10,3 +11,4 @@ target_link_libraries(
     PRIVATE
     args
 )
+
