@@ -2,9 +2,9 @@
 #include "args/parser.hpp"
 #include "helpers.hpp"
 
-using namespace args2;
+using namespace args;
 
-TEST_CASE("", "")
+TEST_CASE("Parse two short options in two arguments", "[args][parser]")
 {
     auto o = opt<int>{'b', "", ""};
     int a;
@@ -19,3 +19,4 @@ TEST_CASE("", "")
     REQUIRE(a == 10);
     REQUIRE(o.value() == 20);
 }
+

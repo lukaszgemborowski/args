@@ -4,9 +4,9 @@
 #include "args/opt.hpp"
 #include "helpers.hpp"
 
-using namespace args2;
+using namespace args;
 
-TEST_CASE("Short options, separate", "[args2][short_parser]")
+TEST_CASE("Short options, separate", "[args][short_parser]")
 {
     int a = 0, b = 0;
     auto opts  = std::make_tuple(
@@ -14,9 +14,7 @@ TEST_CASE("Short options, separate", "[args2][short_parser]")
         detail::opt_state{opt{'b', "", "", b}}
     );
 
-    auto args = CreateArgs{
-        {"-a", "10", "-b", "20", "unknown"}
-    };
+    auto args = CreateArgs{"-a", "10", "-b", "20", "unknown"};
 
     SECTION("Parse first argument")
     {
@@ -36,4 +34,23 @@ TEST_CASE("Short options, separate", "[args2][short_parser]")
         REQUIRE(a == 0);
         REQUIRE(b == 20);
     }
+}
+
+TEST_CASE("Parse two options in one argument", "[args][short_parser]")
+{
+    int a = 0, b = 0;
+    auto opts  = std::make_tuple(
+        detail::opt_state{opt{'a', "", "", a}},
+        detail::opt_state{opt{'b', "", "", b}}
+    );
+
+    auto args = CreateArgs{"-ab", "20"};
+
+    auto sp = detail::short_parser{opts, 1, args.argc(), args.argv()};
+
+    auto r = sp.parse();
+    REQUIRE(r.success);
+    REQUIRE(r.consumed);
+    REQUIRE(a == 20);
+    REQUIRE(b == 20);
 }
