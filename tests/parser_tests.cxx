@@ -20,3 +20,41 @@ TEST_CASE("Parse two short options in two arguments", "[args][parser]")
     REQUIRE(o.value() == 20);
 }
 
+TEST_CASE("Parse one consuming and one non consuming", "[args][parser]")
+{
+    flag a;
+    int b;
+
+    auto p = parser{
+        opt{'a', "", "", a},
+        opt{'b', "", "", b}
+    };
+
+    SECTION("first")
+    {
+        auto args = CreateArgs{"-a", "-b", "42"};
+        p.parse(args.argc(), args.argv());
+    }
+
+    SECTION("second")
+    {
+        auto args = CreateArgs{"-b", "42", "-a"};
+        p.parse(args.argc(), args.argv());
+    }
+
+    SECTION("third")
+    {
+        auto args = CreateArgs{"-ab", "42"};
+        p.parse(args.argc(), args.argv());
+    }
+
+    SECTION("fourth")
+    {
+        auto args = CreateArgs{"-ba", "42"};
+        p.parse(args.argc(), args.argv());
+    }
+
+    REQUIRE(a == true);
+    REQUIRE(b == 42);
+}
+

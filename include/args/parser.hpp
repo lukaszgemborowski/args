@@ -34,7 +34,11 @@ private:
     parser_result try_parse(int c, int argc, char **argv)
     {
         if (detail::is_short(argv[c])) {
-            auto p = detail::short_parser{opts_, c, argc, argv};
+            auto p = detail::short_parser{
+                opts_,
+                argv[c],
+                c < (argc - 1) ? argv[c + 1] : ""
+            };
             return p.parse();
         } else if (detail::is_long(argv[c])) {
             // TODO: implement

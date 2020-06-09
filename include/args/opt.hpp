@@ -2,13 +2,15 @@
 #define ARGS_OPT_HPP
 
 #include "args/common.hpp"
+#include "args/opt_parser.hpp"
 #include <string_view>
+#include <type_traits>
 
 ARGS_NAMESPACE_BEGIN
 
 template<class T>
 struct opt {
-    using type = T;
+    using type = std::remove_reference_t<T>;
 
     opt(char s, char const* l, char const *d)
         : short_name_ {s}
@@ -43,7 +45,7 @@ private:
     T                   storage_;
 };
 
-template<class T> opt(char, char const*, char const*, T&) -> opt<T&>;
+template<class T> opt(char, char const*, char const*, T&) -> opt<T &>;
 
 ARGS_NAMESPACE_END
 

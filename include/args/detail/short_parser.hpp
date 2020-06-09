@@ -4,6 +4,7 @@
 #include "args/common.hpp"
 #include "args/parser_result.hpp"
 #include <type_traits>
+#include <string_view>
 #include <tuple>
 
 ARGS_NAMESPACE_BEGIN
@@ -13,11 +14,10 @@ namespace detail {
 template<class T>
 struct short_parser
 {
-    short_parser(T& opts, int c, int argc, char **argv)
+    short_parser(T& opts, std::string_view current, std::string_view next)
         : opts_ {opts}
-        , c_ {c}
-        , argc_ {argc}
-        , argv_ {argv}
+        , current_ {current}
+        , next_ {next}
     {}
 
     using Idx = std::make_index_sequence<std::tuple_size_v<T>>;
@@ -29,6 +29,7 @@ struct short_parser
         return parse(Idx{});
     }
 
+private:
     template<std::size_t... I>
     auto parse(Seq<I...>)
     {
@@ -42,19 +43,19 @@ struct short_parser
     {
         parser_result result;
 
-        for (auto chr : std::string_view{argv_[c_]}) {
+        for (auto chr : current_) {
             if (parser.opt_.short_name() == chr) {
-                result.update(parser.parse(c_, argc_, argv_));
+                result.update(parser.parse(current_, next_));
+                continue;
             }
         }
 
         return result;
     }
 
-    T&      opts_;
-    int     c_;
-    int     argc_;
-    char**  argv_;
+    T&                  opts_;
+    std::string_view    current_;
+    std::string_view    next_;
 };
 
 } // detail
