@@ -2,6 +2,7 @@
 #define ARGS_DETAIL_OPT_STATE_HPP
 
 #include "args/common.hpp"
+#include "args/opt_parser.hpp"
 
 ARGS_NAMESPACE_BEGIN
 namespace detail {

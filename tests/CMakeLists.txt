@@ -1,7 +1,10 @@
 add_executable(
     tests
     main.cxx
-    args2_tests.cxx
+    opt_tests.cxx
+    opt_state_tests.cxx
+    short_parser_tests.cxx
+    parser_tests.cxx
 )
 
 target_link_libraries(
