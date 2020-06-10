@@ -2,6 +2,7 @@
 #include "args/sugar.hpp"
 
 using namespace args;
+using namespace args::literals;
 
 TEST_CASE("", "")
 {

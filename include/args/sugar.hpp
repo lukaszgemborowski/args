@@ -6,9 +6,11 @@
 
 ARGS_NAMESPACE_BEGIN
 
+namespace literals {
 constexpr basic_opt operator"" _o (char s)
 {
     return basic_opt{s};
+}
 }
 
 template<class T>

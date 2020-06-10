@@ -6,6 +6,7 @@ add_executable(
     short_parser_tests.cxx
     parser_tests.cxx
     sugar_tests.cxx
+    examples.cxx
 )
 
 target_link_libraries(
