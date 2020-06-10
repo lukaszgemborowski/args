@@ -16,7 +16,7 @@ struct short_parser
 {
     short_parser(T& opts, std::string_view current, std::string_view next)
         : opts_ {opts}
-        , current_ {current}
+        , current_ {current.substr(1)}
         , next_ {next}
     {}
 
@@ -24,12 +24,36 @@ struct short_parser
     template<std::size_t... I>
     using Seq = std::index_sequence<I...>;
 
-    auto parse()
+    auto parse() -> parser_result
     {
-        return parse(Idx{});
+        auto chars = opt_chars();
+        auto arg_pos = current_.find_first_not_of(chars.data(), 0, chars.size());
+
+        if (arg_pos == std::string_view::npos)
+            // current_ consists only of chars -> there's no argument encoded
+            return parse(Idx{});
+        else
+            return {false, false};
     }
 
 private:
+    constexpr auto opt_chars() const
+    {
+        return opt_chars_impl(Idx{});
+    }
+
+
+    template<std::size_t... I>
+    constexpr auto opt_chars_impl(Seq<I...>) const
+    {
+        std::array<char, std::tuple_size_v<T>> result;
+        ((
+            result[I] = std::get<I>(opts_).opt_.short_name())
+         , ...);
+
+        return result;
+    }
+
     template<std::size_t... I>
     auto parse(Seq<I...>)
     {

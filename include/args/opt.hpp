@@ -34,7 +34,7 @@ struct opt {
         return storage_;
     }
 
-    auto short_name() const noexcept {
+    constexpr auto short_name() const noexcept {
         return short_name_;
     }
 

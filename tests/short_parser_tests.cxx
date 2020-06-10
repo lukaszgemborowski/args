@@ -60,7 +60,7 @@ TEST_CASE("Parse consuming in one argument with value", "[args][short_parser][fa
     );
 
     auto sp = detail::short_parser{opts, "-a42", ""};
-    auto r = sp.parse();
+    auto r  = sp.parse();
 
     REQUIRE(r.consumed == false);
     REQUIRE(r.success == true);
