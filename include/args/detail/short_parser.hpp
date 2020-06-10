@@ -30,10 +30,21 @@ struct short_parser
         auto arg_pos = current_.find_first_not_of(chars.data(), 0, chars.size());
 
         if (arg_pos == std::string_view::npos)
-            // current_ consists only of chars -> there's no argument encoded
+            // current_ consists only of opt chars -> there's no argument encoded
             return parse(Idx{});
-        else
-            return {false, false};
+        else {
+            // there is opt and its parameter in one command line argument,
+            // ie. it seems to be something like "-x42" passed to the program.
+            // Just split 'x' and '42' and try to parse it that way
+            next_ = current_.substr(arg_pos);
+            current_ = current_.substr(0, arg_pos);
+            auto r = parse(Idx{});
+
+            // as the original "next" can't be consumed in that case
+            // force "consumed" parameter to false
+            r.consumed = false;
+            return r;
+        }
     }
 
 private:
