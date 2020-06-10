@@ -5,6 +5,7 @@ add_executable(
     opt_state_tests.cxx
     short_parser_tests.cxx
     parser_tests.cxx
+    sugar_tests.cxx
 )
 
 target_link_libraries(

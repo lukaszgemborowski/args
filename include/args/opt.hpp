@@ -8,21 +8,65 @@
 
 ARGS_NAMESPACE_BEGIN
 
-template<class T>
-struct opt {
-    using type = std::remove_reference_t<T>;
+struct description
+{
+    explicit description(char const* value)
+        : value_ {value}
+    {}
 
-    opt(char s, char const* l, char const *d)
+    char const* value_;
+};
+
+struct basic_opt
+{
+    basic_opt(basic_opt const& rhs) = default;
+
+    constexpr basic_opt(char s, char const* l, char const *d)
         : short_name_ {s}
         , long_name_ {l}
         , description_ {d}
-        , storage_ {}
+    {}
+
+    constexpr basic_opt(char s)
+        : short_name_ {s}
+    {}
+
+    constexpr auto short_name() const noexcept {
+        return short_name_;
+    }
+
+    constexpr auto description() const noexcept {
+        return description_;
+    }
+
+    auto operator|(class description &&desc) &&
+    {
+        description_ = desc.value_;
+        return *this;
+    }
+
+private:
+    char                short_name_;
+    std::string_view    long_name_ = {};
+    std::string_view    description_ = {};
+};
+
+template<class T>
+struct opt : basic_opt {
+    using type = std::remove_reference_t<T>;
+    using basic_opt::basic_opt;
+
+    opt(basic_opt const& rhs)
+        : basic_opt{rhs}
     {}
 
     opt(char s, char const* l, char const *d, T& t)
-        : short_name_ {s}
-        , long_name_ {l}
-        , description_ {d}
+        : basic_opt {s, l, d}
+        , storage_ {t}
+    {}
+
+    opt(char s, T& t)
+        : basic_opt{s}
         , storage_ {t}
     {}
 
@@ -34,18 +78,12 @@ struct opt {
         return storage_;
     }
 
-    constexpr auto short_name() const noexcept {
-        return short_name_;
-    }
-
 private:
-    char                short_name_;
-    std::string_view    long_name_;
-    std::string_view    description_;
-    T                   storage_;
+    T                   storage_ = {};
 };
 
 template<class T> opt(char, char const*, char const*, T&) -> opt<T &>;
+template<class T> opt(char, T&) -> opt<T &>;
 
 ARGS_NAMESPACE_END
 
