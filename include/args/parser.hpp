@@ -6,6 +6,7 @@
 #include "args/opt_parser.hpp"
 #include "args/opt.hpp"
 #include "args/detail/short_parser.hpp"
+#include "args/detail/positional_parser.hpp"
 #include "args/detail/opt_state.hpp"
 #include "args/detail/detail.hpp"
 #include <tuple>
@@ -33,15 +34,27 @@ struct parser {
 private:
     parser_result try_parse(int c, int argc, char **argv)
     {
+        auto first = std::string_view{argv[c]};
+        auto second = c <(argc - 1) ?
+                      std::string_view{argv[c + 1]} :
+                      std::string_view{};
+
         if (detail::is_short(argv[c])) {
             auto p = detail::short_parser{
                 opts_,
-                argv[c],
-                c < (argc - 1) ? argv[c + 1] : ""
-            };
+                first,
+                second};
             return p.parse();
         } else if (detail::is_long(argv[c])) {
             // TODO: implement
+        } else {
+            // this is positional argument
+            auto p = detail::positional_parser{
+                opts_,
+                first,
+                second
+            };
+            return p.parse();
         }
 
         return {false, false};
